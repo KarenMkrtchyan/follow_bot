@@ -1,6 +1,9 @@
+import camera
+
 def main():
-    print('lets go')
+    cam = camera.Camera()
+    cam.april_tag_stream()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
