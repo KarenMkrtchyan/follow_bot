@@ -1,31 +1,41 @@
+import time
+
 import camera
+from follow_controller import FollowController
 from motors import Motors
 
-STOP_DISTANCE = 2
+STOP_DISTANCE = 2.0
+
+
+def _fmt_dist(dist: float) -> str:
+    if dist == float("inf"):
+        return "inf"
+    return f"{dist:.2f}"
+
 
 def main():
     cam = camera.Camera()
     motors = Motors()
-    # cam.april_tag_stream()
+    ctrl = FollowController(motors, max_follow_distance=STOP_DISTANCE)
 
+    last_t = time.monotonic()
     while True:
+        now = time.monotonic()
+        dt = now - last_t
+        last_t = now
+
         dist, offset_x = cam.get_tag_offset_with_stream()
-        print(f"Distance: {dist:.2f} m, Offset X: {offset_x:.2f} m")
-        if dist > STOP_DISTANCE:
+        print(f"Distance: {_fmt_dist(dist)} m, Offset X: {offset_x:.2f} m")
+
+        if dist == float("inf"):
+            print("NO TAG")
+        elif dist > STOP_DISTANCE:
             print("TOO FAR AWAY")
-            motors.stop()
         else:
             print("IN RANGE")
-            motors.move_forward(0.5)
-        if offset_x > 0.1:
-            print("TURNING RIGHT")
-            motors.turn(10)
-        elif offset_x < -0.1:
-            print("TURNING LEFT")
-            motors.turn(-10)
-        else:
-            print("STRAIGHT")
-            # motors.move_forward(0.5)
+
+        ctrl.step(dist, offset_x, dt)
+
 
 if __name__ == "__main__":
     main()
