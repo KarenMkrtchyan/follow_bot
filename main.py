@@ -1,11 +1,11 @@
 import camera
-import motors
+from motors import Motors
 
 STOP_DISTANCE = 2
 
 def main():
     cam = camera.Camera()
-    motors = motors.Motors()
+    motors = Motors()
     # cam.april_tag_stream()
 
     while True:
