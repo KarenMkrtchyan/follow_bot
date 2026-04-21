@@ -2,7 +2,8 @@ from picamera2 import Picamera2
 import cv2
 from pupil_apriltags import Detector
 import os
-os.environ["QT_QPA_PLATFORM"] = "wayland"  # lets the cv2 use the main screen
+os.environ["QT_QPA_PLATFORM"] = "xcb"
+os.environ["DISPLAY"] = ":0"
 
 class Camera:
     def __init__(self):
