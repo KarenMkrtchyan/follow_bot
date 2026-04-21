@@ -143,6 +143,39 @@ class Camera:
 
         return distance, offset_x
 
+
+    def get_tag_offset_with_stream(self) -> tuple[float, float]:
+        """
+        Return tuple of (distance, offset_x) to closest tag, or (inf, 0) if no tags
+        detected. Updates the preview with each tag's outline and center dot.
+        """
+        frame = self.cam.capture_array()
+        gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+
+        tags = self.detector.detect(
+            gray,
+            estimate_tag_pose=True,
+            camera_params=self.camera_params,
+            tag_size=self.tag_size,
+        )
+
+        for tag in tags:
+            corners = tag.corners.astype(int)
+            cv2.polylines(
+                frame, [corners], isClosed=True, color=(0, 255, 0), thickness=2
+            )
+            center = tuple(tag.center.astype(int))
+            cv2.circle(frame, center, 5, (0, 0, 255), -1)
+
+        cv2.imshow("FollowBot Camera", frame)
+        cv2.waitKey(1)
+
+        if not tags:
+            return float("inf"), 0.0
+
+        best = min(tags, key=lambda t: t.pose_t[2][0])
+        return float(best.pose_t[2][0]), float(best.pose_t[0][0])
+
     def print_calibration_data(self):
         self.cam.stop()
         camera_props = self.cam.camera_properties

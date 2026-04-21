@@ -9,7 +9,7 @@ def main():
     # cam.april_tag_stream()
 
     while True:
-        dist, offset_x = cam.get_tag_offset()
+        dist, offset_x = cam.get_tag_offset_with_stream()
         print(f"Distance: {dist:.2f} m, Offset X: {offset_x:.2f} m")
         if dist > STOP_DISTANCE:
             print("TOO FAR AWAY")
@@ -25,7 +25,7 @@ def main():
             motors.turn(-10)
         else:
             print("STRAIGHT")
-            motors.move_forward(0.5)
+            # motors.move_forward(0.5)
 
 if __name__ == "__main__":
     main()
