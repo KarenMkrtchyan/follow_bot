@@ -34,16 +34,16 @@ else:
 # spin forward 1 second
 print("\nForward...")
 for _ in range(20):
-    set_duty(0.02)
+    set_duty(0.4)
     time.sleep(0.05)
 
 set_duty(0)
-time.sleep(0.5)
+time.sleep(1)
 
 # spin reverse 1 second
 print("Reverse...")
 for _ in range(20):
-    set_duty(-0.02)
+    set_duty(-0.4)
     time.sleep(0.05)
 
 set_duty(0)
