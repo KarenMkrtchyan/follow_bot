@@ -120,6 +120,29 @@ class Camera:
         cv2.destroyAllWindows()
 
 
+    def get_tag_offset(self) -> tuple[float, float]:
+        """
+            Return tule of (distance, offset_x) to closest tag, or (inf, 0) if no tags detected
+        """
+        frame = self.cam.capture_array()
+        gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+
+        tags = self.detector.detect(
+            gray,
+            estimate_tag_pose=True,
+            camera_params=self.camera_params,
+            tag_size=self.tag_size
+        )
+
+        if not tags:
+            return float('inf'), 0.0
+
+        best = min(tags, key=lambda t: t.pose_t[2][0])  # closest tag
+        distance = best.pose_t[2][0]
+        offset_x = best.pose_t[0][0] # offset from center in meters (negative is left, positive is right)
+
+        return distance, offset_x
+
     def print_calibration_data(self):
         self.cam.stop()
         camera_props = self.cam.camera_properties
