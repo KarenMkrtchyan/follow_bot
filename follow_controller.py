@@ -13,8 +13,9 @@ Tuning (hardware-dependent)
 
 Lost tag / out of range
 -----------------------
-When distance is inf (no tag) or distance > max_follow_distance, the controller calls stop(),
-resets the lateral PID (integral and derivative state), and returns without integrating.
+When distance is inf (no tag), the controller can briefly hold the last motor command to ride
+through a short blur or dropped detection. After that grace period, or when the tag is beyond
+max_follow_distance, it calls stop(), resets the lateral PID, and returns without integrating.
 """
 
 from __future__ import annotations
@@ -107,6 +108,9 @@ offset_deadband = 0.05
 # Stop if tag closer than this (meters); 0 disables
 min_follow_distance = 0.0
 
+# Briefly keep the last motor command when the tag disappears for a moment.
+lost_tag_hold_seconds = 0.35
+
 
 class FollowController:
     """Wraps Motors: one non-blocking step() per vision frame."""
@@ -127,6 +131,7 @@ class FollowController:
         min_comfort_distance: float = min_comfort_distance,
         offset_deadband: float = offset_deadband,
         min_follow_distance: float = min_follow_distance,
+        lost_tag_hold_seconds: float = lost_tag_hold_seconds,
     ):
         self.motors = motors
         self.cruise_speed = cruise_speed
@@ -135,6 +140,7 @@ class FollowController:
         self.min_comfort_distance = max(min_comfort_distance, 1e-3)
         self.offset_deadband = offset_deadband
         self.min_follow_distance = min_follow_distance
+        self.lost_tag_hold_seconds = max(lost_tag_hold_seconds, 0.0)
         self.steering_sign = steering_sign
 
         self._lateral = PID(
@@ -146,10 +152,14 @@ class FollowController:
             integral_limit=integral_limit_lat,
         )
         self._last_mono: float | None = None
+        self._last_seen_mono: float | None = None
+        self._last_command = (0.0, 0.0)
 
     def reset(self) -> None:
         self._lateral.reset()
         self._last_mono = None
+        self._last_seen_mono = None
+        self._last_command = (0.0, 0.0)
 
     def step(self, distance: float, offset_x: float, dt: float | None = None) -> None:
         """
@@ -168,14 +178,29 @@ class FollowController:
             self._last_mono = now
         dt = _clamp(dt, 1e-4, 0.5)
 
-        if not math.isfinite(distance) or distance > self.max_follow_distance:
+        if not math.isfinite(distance):
+            if (
+                self._last_seen_mono is not None
+                and now - self._last_seen_mono <= self.lost_tag_hold_seconds
+            ):
+                self.motors.set_speed(*self._last_command)
+                return
             self._lateral.reset()
             self.motors.stop()
+            self._last_command = (0.0, 0.0)
+            self._last_seen_mono = None
+            return
+
+        if distance > self.max_follow_distance:
+            self._lateral.reset()
+            self.motors.stop()
+            self._last_command = (0.0, 0.0)
             return
 
         if self.min_follow_distance > 0.0 and distance < self.min_follow_distance:
             self._lateral.reset()
             self.motors.stop()
+            self._last_command = (0.0, 0.0)
             return
 
         base = self.cruise_speed
@@ -194,4 +219,7 @@ class FollowController:
 
         left = base - steer
         right = base + steer
-        self.motors.set_speed(_clamp(left, -1.0, 1.0), _clamp(right, -1.0, 1.0))
+        command = (_clamp(left, -1.0, 1.0), _clamp(right, -1.0, 1.0))
+        self.motors.set_speed(*command)
+        self._last_command = command
+        self._last_seen_mono = now
