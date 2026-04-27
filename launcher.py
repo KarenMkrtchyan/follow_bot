@@ -23,8 +23,6 @@ class FollowBotApp:
         self.running = False
         self.last_t = None
         self.feed_image = None
-        self.last_battery_poll = 0.0
-        self.battery_status = None
         self.screen_width = self.root.winfo_screenwidth()
         self.screen_height = self.root.winfo_screenheight()
         self.compact_layout = self.screen_width <= 1024 or self.screen_height <= 600
@@ -40,7 +38,6 @@ class FollowBotApp:
 
         self.status_var = tk.StringVar(value="Ready.")
         self.detail_var = tk.StringVar(value="Press Start to launch follow mode.")
-        self.battery_var = tk.StringVar(value="Battery: --")
 
         self._build_layout()
         self._refresh_controls()
@@ -51,17 +48,8 @@ class FollowBotApp:
         container = tk.Frame(self.root, bg="#101418")
         container.pack(fill="both", expand=True, padx=24, pady=24)
 
-        if self.compact_layout:
-            side_width = max(250, int(self.screen_width * 0.30))
-            container.grid_columnconfigure(0, weight=7, minsize=max(320, self.screen_width - side_width - 64))
-            container.grid_columnconfigure(1, weight=3, minsize=side_width)
-            container.grid_rowconfigure(0, weight=1)
-
         feed_panel = tk.Frame(container, bg="#1a222b", bd=0, highlightthickness=0)
-        if self.compact_layout:
-            feed_panel.grid(row=0, column=0, sticky="nsew")
-        else:
-            feed_panel.pack(side="left", fill="both", expand=True)
+        feed_panel.pack(side="left", fill="both", expand=True)
 
         self.feed_label = tk.Label(
             feed_panel,
@@ -75,8 +63,8 @@ class FollowBotApp:
         self.feed_label.pack(fill="both", expand=True, padx=24, pady=24)
 
         if self.compact_layout:
-            side_panel = tk.Frame(container, bg="#182028", width=side_width)
-            side_panel.grid(row=0, column=1, sticky="ns", padx=(18, 0))
+            side_panel = tk.Frame(container, bg="#182028", width=max(260, int(self.screen_width * 0.28)))
+            side_panel.pack(side="right", fill="y", padx=(18, 0))
             side_panel.pack_propagate(False)
         else:
             side_panel = tk.Frame(container, bg="#182028", width=460)
@@ -84,27 +72,14 @@ class FollowBotApp:
             side_panel.pack_propagate(False)
 
         if self.compact_layout:
-            header_row = tk.Frame(side_panel, bg="#182028")
-            header_row.pack(fill="x", padx=12, pady=(14, 8))
-
             title = tk.Label(
-                header_row,
+                side_panel,
                 text="FollowBot",
                 font=("Arial", 18, "bold"),
                 fg="#f3f5f7",
                 bg="#182028",
             )
-            title.pack(side="left")
-
-            battery_label = tk.Label(
-                header_row,
-                textvariable=self.battery_var,
-                font=("Arial", 11, "bold"),
-                fg="#8de0a6",
-                bg="#182028",
-                anchor="e",
-            )
-            battery_label.pack(side="right")
+            title.pack(pady=(18, 10))
         else:
             title = tk.Label(
                 side_panel,
@@ -114,15 +89,6 @@ class FollowBotApp:
                 bg="#182028",
             )
             title.pack(pady=(40, 20))
-
-            battery_label = tk.Label(
-                side_panel,
-                textvariable=self.battery_var,
-                font=("Arial", 18, "bold"),
-                fg="#8de0a6",
-                bg="#182028",
-            )
-            battery_label.pack(pady=(0, 18))
 
             subtitle = tk.Label(
                 side_panel,
@@ -248,7 +214,6 @@ class FollowBotApp:
         self._ensure_camera()
         if self.motors is None:
             self.motors = Motors()
-            self._poll_battery(force=True)
         if self.controller is None:
             self.controller = FollowController(self.motors)
 
@@ -320,8 +285,6 @@ class FollowBotApp:
                         dt = max(0.001, now - self.last_t)
                     self.last_t = now
                     self.controller.step(distance, offset_x, dt)
-
-            self._poll_battery()
         except Exception as exc:
             self.running = False
             self.status_var.set("Runtime error.")
@@ -336,28 +299,6 @@ class FollowBotApp:
         image.thumbnail(self.feed_max_size)
         self.feed_image = ImageTk.PhotoImage(image=image)
         self.feed_label.configure(image=self.feed_image, text="")
-
-    def _poll_battery(self, force=False):
-        if self.motors is None:
-            return
-
-        now = time.monotonic()
-        if not force and now - self.last_battery_poll < 2.0:
-            return
-
-        self.last_battery_poll = now
-        battery = self.motors.get_battery_status()
-        if battery is None:
-            self.battery_var.set("Battery: --")
-            return
-
-        self.battery_status = battery
-        percent = battery.get("percent")
-        voltage = battery.get("voltage")
-        if percent is None:
-            self.battery_var.set(f"Battery: {voltage:.1f}V")
-        else:
-            self.battery_var.set(f"Battery: {percent}% ({voltage:.1f}V)")
 
     def _update_status(self, distance, offset_x):
         if distance == float("inf"):

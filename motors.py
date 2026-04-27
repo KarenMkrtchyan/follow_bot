@@ -1,12 +1,7 @@
 import time
 import serial
 import pyvesc
-from pyvesc import GetValues
 from pyvesc.VESC.messages import SetRPM
-
-
-BATTERY_FULL_VOLTAGE = 42.0
-BATTERY_EMPTY_VOLTAGE = 33.0
 
 
 class Motors:
@@ -47,18 +42,9 @@ class Motors:
     def _clamp(self, value, min_value=-1.0, max_value=1.0):
         return max(min_value, min(max_value, value))
 
-    def _clamp_percent(self, value):
-        return max(0, min(100, int(round(value))))
-
     def _speed_to_rpm(self, speed):
         speed = self._clamp(speed)
         return int(speed * self.max_rpm)
-
-    def _battery_percent_from_voltage(self, voltage):
-        span = BATTERY_FULL_VOLTAGE - BATTERY_EMPTY_VOLTAGE
-        if span <= 0:
-            return None
-        return self._clamp_percent((voltage - BATTERY_EMPTY_VOLTAGE) / span * 100.0)
 
     def set_speed(self, left_speed, right_speed):
         """
@@ -109,38 +95,6 @@ class Motors:
 
     def stop(self):
         self.set_speed(0.0, 0.0)
-
-    def get_battery_status(self):
-        """
-        Query the local VESC for battery voltage and return a rough percentage estimate.
-        Returns None if telemetry is unavailable.
-        """
-        try:
-            self.ser.reset_input_buffer()
-            self.ser.write(pyvesc.encode_request(GetValues))
-            self.ser.flush()
-            time.sleep(0.05)
-
-            if self.ser.in_waiting <= 0:
-                return None
-
-            response, consumed = pyvesc.decode(self.ser.read(self.ser.in_waiting))
-            if response is None or consumed == 0:
-                return None
-
-            voltage = getattr(response, "v_in", None)
-            if voltage is None:
-                voltage = getattr(response, "input_voltage", None)
-            if voltage is None:
-                return None
-
-            voltage = float(voltage)
-            return {
-                "voltage": voltage,
-                "percent": self._battery_percent_from_voltage(voltage),
-            }
-        except Exception:
-            return None
 
     def close(self):
         try:
