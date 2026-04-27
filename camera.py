@@ -184,6 +184,16 @@ class Camera:
         self._show_frame(frame)
         return self._closest_tag_measurement(tags)
 
+    def get_annotated_frame_and_measurement(self):
+        """
+        Return an annotated RGB frame along with (distance, offset_x) for the closest tag.
+        This is intended for embedding the live feed into another UI instead of cv2.imshow.
+        """
+        frame, tags = self._detect_tags()
+        self._draw_overlay(frame, tags)
+        distance, offset_x = self._closest_tag_measurement(tags)
+        return frame, distance, offset_x
+
     def print_calibration_data(self):
         self.cam.stop()
         camera_props = self.cam.camera_properties

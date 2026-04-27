@@ -1,3 +1,4 @@
 picamera2
 opencv-python
 pupil_apriltags
+Pillow
