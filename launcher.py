@@ -32,11 +32,6 @@ class FollowBotApp:
         self.detail_var = tk.StringVar(value="Press Start to launch follow mode.")
 
         self._build_layout()
-        try:
-            self._ensure_camera()
-        except Exception as exc:
-            self.status_var.set("Camera startup failed.")
-            self.detail_var.set(str(exc))
         self._refresh_controls()
         self.root.after(33, self._tick)
         self.root.protocol("WM_DELETE_WINDOW", self.exit_app)
@@ -50,88 +45,88 @@ class FollowBotApp:
 
         self.feed_label = tk.Label(
             feed_panel,
-            text="Camera feed will appear here",
+            text="Press Start to launch FollowBot",
             font=("Arial", 24, "bold"),
             fg="#d8e1e8",
             bg="#1a222b",
         )
         self.feed_label.pack(fill="both", expand=True, padx=24, pady=24)
 
-        side_panel = tk.Frame(container, bg="#182028", width=340)
+        side_panel = tk.Frame(container, bg="#182028", width=460)
         side_panel.pack(side="right", fill="y", padx=(24, 0))
         side_panel.pack_propagate(False)
 
         title = tk.Label(
             side_panel,
             text="FollowBot",
-            font=("Arial", 28, "bold"),
+            font=("Arial", 34, "bold"),
             fg="#f3f5f7",
             bg="#182028",
         )
-        title.pack(pady=(32, 16))
+        title.pack(pady=(40, 20))
 
         subtitle = tk.Label(
             side_panel,
-            text="Drive mode with live camera feed",
-            font=("Arial", 16),
+            text="Start opens the live camera feed and begins follow mode.",
+            font=("Arial", 22),
             fg="#b7c5d3",
             bg="#182028",
-            wraplength=260,
+            wraplength=360,
             justify="center",
         )
-        subtitle.pack(pady=(0, 24))
+        subtitle.pack(pady=(0, 32))
 
         self.start_button = tk.Button(
             side_panel,
             text="Start",
-            font=("Arial", 24),
-            width=14,
-            height=2,
+            font=("Arial", 28, "bold"),
+            width=16,
+            height=3,
             command=self.start_followbot,
         )
-        self.start_button.pack(pady=12)
+        self.start_button.pack(pady=16)
 
         self.stop_button = tk.Button(
             side_panel,
             text="Stop",
-            font=("Arial", 24),
-            width=14,
-            height=2,
+            font=("Arial", 28, "bold"),
+            width=16,
+            height=3,
             command=self.stop_followbot,
         )
-        self.stop_button.pack(pady=12)
+        self.stop_button.pack(pady=16)
 
         self.exit_button = tk.Button(
             side_panel,
             text="Exit",
-            font=("Arial", 24),
-            width=14,
-            height=2,
+            font=("Arial", 28, "bold"),
+            width=16,
+            height=3,
             command=self.exit_app,
         )
-        self.exit_button.pack(pady=12)
+        self.exit_button.pack(pady=16)
 
         status_label = tk.Label(
             side_panel,
             textvariable=self.status_var,
-            font=("Arial", 18, "bold"),
+            font=("Arial", 24, "bold"),
             fg="#ffffff",
             bg="#182028",
-            wraplength=280,
+            wraplength=360,
             justify="center",
         )
-        status_label.pack(pady=(28, 12))
+        status_label.pack(pady=(36, 16))
 
         detail_label = tk.Label(
             side_panel,
             textvariable=self.detail_var,
-            font=("Arial", 14),
+            font=("Arial", 18),
             fg="#b7c5d3",
             bg="#182028",
-            wraplength=280,
+            wraplength=360,
             justify="center",
         )
-        detail_label.pack(pady=(0, 20))
+        detail_label.pack(pady=(0, 24))
 
     def _refresh_controls(self):
         self.start_button.configure(state=tk.DISABLED if self.running else tk.NORMAL)
@@ -142,7 +137,7 @@ class FollowBotApp:
             self.camera = camera.Camera()
             self.status_var.set("Camera ready.")
             self.detail_var.set(
-                "Live preview ready.\n"
+                "Live feed started.\n"
                 f"Display={self.camera.display_env!r} | Session={self.camera.session_type!r}"
             )
 
@@ -242,7 +237,7 @@ class FollowBotApp:
         else:
             summary = f"Distance {distance:.2f} m | Offset {offset_x:.2f} m"
         if not self.running:
-            summary = "Preview mode.\n" + summary
+            summary = "Drive mode paused.\n" + summary
         self.detail_var.set(summary)
 
     def exit_app(self):
