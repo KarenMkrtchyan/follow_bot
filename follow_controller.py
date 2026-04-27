@@ -95,12 +95,13 @@ integral_limit_lat = 0.35
 
 steering_sign = 1.0  # Flip to -1.0 if tag-right still steers the wrong way
 
-cruise_speed = 0.35
+cruise_speed = 0.5
 max_follow_distance = 2.0  # meters: same role as STOP_DISTANCE in main
 
 # Optional: scale down forward speed when very close (0 disables)
 slow_close_distance = 0.8
 min_comfort_distance = 0.4
+minimum_forward_speed = 0.3
 
 # Ignore tiny lateral error to reduce chatter (meters)
 offset_deadband = 0.05
@@ -129,6 +130,7 @@ class FollowController:
         max_follow_distance: float = max_follow_distance,
         slow_close_distance: float = slow_close_distance,
         min_comfort_distance: float = min_comfort_distance,
+        minimum_forward_speed: float = minimum_forward_speed,
         offset_deadband: float = offset_deadband,
         min_follow_distance: float = min_follow_distance,
         lost_tag_hold_seconds: float = lost_tag_hold_seconds,
@@ -138,6 +140,7 @@ class FollowController:
         self.max_follow_distance = max_follow_distance
         self.slow_close_distance = slow_close_distance
         self.min_comfort_distance = max(min_comfort_distance, 1e-3)
+        self.minimum_forward_speed = max(minimum_forward_speed, 0.0)
         self.offset_deadband = offset_deadband
         self.min_follow_distance = min_follow_distance
         self.lost_tag_hold_seconds = max(lost_tag_hold_seconds, 0.0)
@@ -205,10 +208,13 @@ class FollowController:
 
         base = self.cruise_speed
         if self.slow_close_distance > 0.0 and distance < self.slow_close_distance:
-            base *= _clamp(
+            base = max(
+                self.minimum_forward_speed,
+                base * _clamp(
                 distance / self.min_comfort_distance,
                 0.0,
                 1.0,
+                ),
             )
 
         lat_meas = offset_x
