@@ -85,24 +85,24 @@ class PID:
 
 # --- Defaults: tune on robot -------------------------------------------------
 
-Kp_lat = 2.5
-Ki_lat = 0.15
+Kp_lat = 1.6
+Ki_lat = 0.08
 Kd_lat = 0.0  # PI-first; vision is noisy for raw D
 
-steer_max = 0.45
+steer_max = 0.25
 integral_limit_lat = 0.35
 
 steering_sign = 1.0  # Flip to -1.0 if tag-right still steers the wrong way
 
-cruise_speed = 0.5
+cruise_speed = 0.35
 max_follow_distance = 2.0  # meters: same role as STOP_DISTANCE in main
 
 # Optional: scale down forward speed when very close (0 disables)
-slow_close_distance = 0.0  # set e.g. 0.5 to ramp base down inside this radius
-min_comfort_distance = 0.35  # used only if slow_close_distance > 0
+slow_close_distance = 0.8
+min_comfort_distance = 0.4
 
 # Ignore tiny lateral error to reduce chatter (meters)
-offset_deadband = 0.0
+offset_deadband = 0.05
 
 # Stop if tag closer than this (meters); 0 disables
 min_follow_distance = 0.0
