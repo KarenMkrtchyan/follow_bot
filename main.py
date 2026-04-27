@@ -14,14 +14,15 @@ def _fmt_dist(dist: float) -> str:
     return f"{dist:.2f}"
 
 
-def _log_status(dist: float, offset_x: float):
-    print(f"Distance: {_fmt_dist(dist)} m, Offset X: {offset_x:.2f} m")
+def _status_summary(dist: float, offset_x: float) -> str:
+    parts = [f"Distance: {_fmt_dist(dist)} m", f"Offset X: {offset_x:.2f} m"]
     if dist == float("inf"):
-        print("NO TAG")
+        parts.append("NO TAG")
     elif dist > STOP_DISTANCE:
-        print("TOO FAR AWAY")
+        parts.append("TOO FAR AWAY")
     else:
-        print("IN RANGE")
+        parts.append("IN RANGE")
+    return " | ".join(parts)
 
 
 def run_preview_mode():
@@ -34,16 +35,10 @@ def run_preview_mode():
             f"WAYLAND_DISPLAY={cam.wayland_env!r},",
             f"XDG_SESSION_TYPE={cam.session_type!r}",
         )
-        last_status_time = 0.0
         while True:
             dist, offset_x = cam.get_tag_offset_with_stream()
             if cam.should_quit:
                 break
-            if not cam.has_display:
-                now = time.monotonic()
-                if now - last_status_time >= 1.0:
-                    _log_status(dist, offset_x)
-                    last_status_time = now
     except KeyboardInterrupt:
         print("Stopping preview...")
     finally:
@@ -56,6 +51,8 @@ def run_drive_mode():
     ctrl = FollowController(motors, max_follow_distance=STOP_DISTANCE)
 
     last_t = time.monotonic()
+    last_status = None
+    last_status_time = 0.0
     try:
         print(
             "Display detection:",
@@ -72,7 +69,11 @@ def run_drive_mode():
             dist, offset_x = cam.get_tag_offset_with_stream()
             if cam.should_quit:
                 break
-            _log_status(dist, offset_x)
+            status = _status_summary(dist, offset_x)
+            if status != last_status or now - last_status_time >= 1.0:
+                print(status)
+                last_status = status
+                last_status_time = now
             ctrl.step(dist, offset_x, dt)
     except KeyboardInterrupt:
         print("Stopping robot...")
