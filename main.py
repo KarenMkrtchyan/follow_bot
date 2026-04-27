@@ -27,6 +27,13 @@ def _log_status(dist: float, offset_x: float):
 def run_preview_mode():
     cam = camera.Camera()
     try:
+        print(
+            "Display detection:",
+            f"has_display={cam.has_display},",
+            f"DISPLAY={cam.display_env!r},",
+            f"WAYLAND_DISPLAY={cam.wayland_env!r},",
+            f"XDG_SESSION_TYPE={cam.session_type!r}",
+        )
         last_status_time = 0.0
         while True:
             dist, offset_x = cam.get_tag_offset_with_stream()
@@ -50,6 +57,13 @@ def run_drive_mode():
 
     last_t = time.monotonic()
     try:
+        print(
+            "Display detection:",
+            f"has_display={cam.has_display},",
+            f"DISPLAY={cam.display_env!r},",
+            f"WAYLAND_DISPLAY={cam.wayland_env!r},",
+            f"XDG_SESSION_TYPE={cam.session_type!r}",
+        )
         while True:
             now = time.monotonic()
             dt = now - last_t

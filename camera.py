@@ -12,6 +12,9 @@ from pupil_apriltags import Detector
 
 class Camera:
     def __init__(self):
+        self.display_env = os.environ.get("DISPLAY")
+        self.wayland_env = os.environ.get("WAYLAND_DISPLAY")
+        self.session_type = os.environ.get("XDG_SESSION_TYPE")
         self.cam = Picamera2()
         self.cam.configure(self.cam.create_preview_configuration(
             main={"size": (640, 480), "format": "RGB888"}
@@ -32,7 +35,7 @@ class Camera:
         cx, cy = 320, 240
         self.camera_params = (FOCAL_LENGTH, FOCAL_LENGTH, cx, cy)
         self.tag_size = 0.15  # meters
-        self.has_display = bool(display_env or wayland_env)
+        self.has_display = bool(self.display_env or self.wayland_env)
         self.should_quit = False
 
     def _detect_tags(self):
