@@ -23,6 +23,9 @@ class FollowBotApp:
         self.running = False
         self.last_t = None
         self.feed_image = None
+        self.screen_width = self.root.winfo_screenwidth()
+        self.screen_height = self.root.winfo_screenheight()
+        self.compact_layout = self.screen_width <= 1024 or self.screen_height <= 600
 
         self.root.title("FollowBot Launcher")
         self.root.attributes("-fullscreen", True)
@@ -41,92 +44,126 @@ class FollowBotApp:
         container.pack(fill="both", expand=True, padx=24, pady=24)
 
         feed_panel = tk.Frame(container, bg="#1a222b", bd=0, highlightthickness=0)
-        feed_panel.pack(side="left", fill="both", expand=True)
+        if self.compact_layout:
+            feed_panel.pack(side="top", fill="both", expand=True)
+        else:
+            feed_panel.pack(side="left", fill="both", expand=True)
 
         self.feed_label = tk.Label(
             feed_panel,
             text="Press Start to launch FollowBot",
-            font=("Arial", 24, "bold"),
+            font=("Arial", 20 if self.compact_layout else 24, "bold"),
             fg="#d8e1e8",
             bg="#1a222b",
+            wraplength=700 if self.compact_layout else 1000,
+            justify="center",
         )
         self.feed_label.pack(fill="both", expand=True, padx=24, pady=24)
 
-        side_panel = tk.Frame(container, bg="#182028", width=460)
-        side_panel.pack(side="right", fill="y", padx=(24, 0))
-        side_panel.pack_propagate(False)
+        if self.compact_layout:
+            side_panel = tk.Frame(container, bg="#182028", height=190)
+            side_panel.pack(side="bottom", fill="x", pady=(18, 0))
+            side_panel.pack_propagate(False)
+        else:
+            side_panel = tk.Frame(container, bg="#182028", width=460)
+            side_panel.pack(side="right", fill="y", padx=(24, 0))
+            side_panel.pack_propagate(False)
 
         title = tk.Label(
             side_panel,
             text="FollowBot",
-            font=("Arial", 34, "bold"),
+            font=("Arial", 22 if self.compact_layout else 34, "bold"),
             fg="#f3f5f7",
             bg="#182028",
         )
-        title.pack(pady=(40, 20))
+        title.pack(pady=(14 if self.compact_layout else 40, 8 if self.compact_layout else 20))
 
         subtitle = tk.Label(
             side_panel,
             text="Start opens the live camera feed and begins follow mode.",
-            font=("Arial", 22),
+            font=("Arial", 12 if self.compact_layout else 22),
             fg="#b7c5d3",
             bg="#182028",
-            wraplength=360,
+            wraplength=680 if self.compact_layout else 360,
             justify="center",
         )
-        subtitle.pack(pady=(0, 32))
+        subtitle.pack(pady=(0, 10 if self.compact_layout else 32))
+
+        controls_row = tk.Frame(side_panel, bg="#182028")
+        controls_row.pack(
+            pady=(6 if self.compact_layout else 0, 6 if self.compact_layout else 0),
+            fill="x" if self.compact_layout else "none",
+        )
 
         self.start_button = tk.Button(
-            side_panel,
+            controls_row,
             text="Start",
-            font=("Arial", 28, "bold"),
-            width=16,
-            height=3,
+            font=("Arial", 18 if self.compact_layout else 28, "bold"),
+            width=10 if self.compact_layout else 16,
+            height=2 if self.compact_layout else 3,
             command=self.start_followbot,
         )
-        self.start_button.pack(pady=16)
+        self.start_button.pack(
+            side="left" if self.compact_layout else "top",
+            expand=self.compact_layout,
+            fill="x" if self.compact_layout else "none",
+            padx=8 if self.compact_layout else 0,
+            pady=8 if self.compact_layout else 16,
+        )
 
         self.stop_button = tk.Button(
-            side_panel,
+            controls_row,
             text="Stop",
-            font=("Arial", 28, "bold"),
-            width=16,
-            height=3,
+            font=("Arial", 18 if self.compact_layout else 28, "bold"),
+            width=10 if self.compact_layout else 16,
+            height=2 if self.compact_layout else 3,
             command=self.stop_followbot,
         )
-        self.stop_button.pack(pady=16)
+        self.stop_button.pack(
+            side="left" if self.compact_layout else "top",
+            expand=self.compact_layout,
+            fill="x" if self.compact_layout else "none",
+            padx=8 if self.compact_layout else 0,
+            pady=8 if self.compact_layout else 16,
+        )
 
         self.exit_button = tk.Button(
-            side_panel,
+            controls_row,
             text="Exit",
-            font=("Arial", 28, "bold"),
-            width=16,
-            height=3,
+            font=("Arial", 18 if self.compact_layout else 28, "bold"),
+            width=10 if self.compact_layout else 16,
+            height=2 if self.compact_layout else 3,
             command=self.exit_app,
         )
-        self.exit_button.pack(pady=16)
+        self.exit_button.pack(
+            side="left" if self.compact_layout else "top",
+            expand=self.compact_layout,
+            fill="x" if self.compact_layout else "none",
+            padx=8 if self.compact_layout else 0,
+            pady=8 if self.compact_layout else 16,
+        )
 
         status_label = tk.Label(
             side_panel,
             textvariable=self.status_var,
-            font=("Arial", 24, "bold"),
+            font=("Arial", 14 if self.compact_layout else 24, "bold"),
             fg="#ffffff",
             bg="#182028",
-            wraplength=360,
+            wraplength=700 if self.compact_layout else 360,
             justify="center",
         )
-        status_label.pack(pady=(36, 16))
+        status_label.pack(pady=(10 if self.compact_layout else 36, 6 if self.compact_layout else 16))
 
         detail_label = tk.Label(
             side_panel,
             textvariable=self.detail_var,
-            font=("Arial", 18),
+            font=("Arial", 11 if self.compact_layout else 18),
             fg="#b7c5d3",
             bg="#182028",
-            wraplength=360,
+            wraplength=700 if self.compact_layout else 360,
             justify="center",
         )
-        detail_label.pack(pady=(0, 24))
+        detail_label.pack(pady=(0, 8 if self.compact_layout else 24))
 
     def _refresh_controls(self):
         self.start_button.configure(state=tk.DISABLED if self.running else tk.NORMAL)
@@ -227,7 +264,10 @@ class FollowBotApp:
 
     def _update_feed(self, frame):
         image = Image.fromarray(frame)
-        image.thumbnail((1100, 900))
+        if self.compact_layout:
+            image.thumbnail((760, 320))
+        else:
+            image.thumbnail((1100, 900))
         self.feed_image = ImageTk.PhotoImage(image=image)
         self.feed_label.configure(image=self.feed_image, text="")
 
