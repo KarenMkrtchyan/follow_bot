@@ -36,14 +36,10 @@ def _start_process(args: list[str]):
     _refresh_controls()
 
 
-def start_preview():
-    _start_process([])
-
-
-def start_drive():
+def start_followbot():
     confirmed = messagebox.askyesno(
-        "Enable Drive Mode",
-        "Drive mode will enable motor control. Continue?",
+        "Start FollowBot",
+        "This will enable motor control and start follow mode. Continue?",
     )
     if confirmed:
         _start_process(["--drive"])
@@ -79,8 +75,7 @@ def exit_app():
 
 def _refresh_controls():
     running = _is_running()
-    preview_button.configure(state=tk.DISABLED if running else tk.NORMAL)
-    drive_button.configure(state=tk.DISABLED if running else tk.NORMAL)
+    start_button.configure(state=tk.DISABLED if running else tk.NORMAL)
     stop_button.configure(state=tk.NORMAL if running else tk.DISABLED)
 
 
@@ -105,7 +100,7 @@ if not has_display():
 
 root = tk.Tk()
 root.title("FollowBot Launcher")
-root.geometry("520x390")
+root.geometry("520x340")
 root.configure(padx=20, pady=20)
 
 title = tk.Label(root, text="FollowBot Control", font=("Arial", 22, "bold"))
@@ -113,7 +108,7 @@ title.pack(pady=(10, 20))
 
 subtitle = tk.Label(
     root,
-    text="Preview is safe. Drive enables motor control.",
+    text="Press Start to launch follow mode.",
     font=("Arial", 12),
 )
 subtitle.pack(pady=(0, 20))
@@ -128,25 +123,15 @@ command_label = tk.Label(
 )
 command_label.pack(pady=(0, 16))
 
-preview_button = tk.Button(
+start_button = tk.Button(
     root,
-    text="Start Preview",
+    text="Start",
     font=("Arial", 16),
     width=20,
     height=2,
-    command=start_preview,
+    command=start_followbot,
 )
-preview_button.pack(pady=8)
-
-drive_button = tk.Button(
-    root,
-    text="Start Drive",
-    font=("Arial", 16),
-    width=20,
-    height=2,
-    command=start_drive,
-)
-drive_button.pack(pady=8)
+start_button.pack(pady=8)
 
 stop_button = tk.Button(
     root,
