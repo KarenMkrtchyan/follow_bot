@@ -90,18 +90,18 @@ Kp_lat = 1.6
 Ki_lat = 0.08
 Kd_lat = 0.0  # PI-first; vision is noisy for raw D
 
-steer_max = 0.25
+steer_max = 0.18
 integral_limit_lat = 0.35
 
-steering_sign = 1.0  # Flip to -1.0 if tag-right still steers the wrong way
+steering_sign = -1.0  # Flip if the robot steers the wrong way for your wiring/camera setup
 
-cruise_speed = 0.5
+cruise_speed = 0.3
 max_follow_distance = 2.0  # meters: same role as STOP_DISTANCE in main
 
 # Optional: scale down forward speed when very close (0 disables)
 slow_close_distance = 0.8
 min_comfort_distance = 0.4
-minimum_forward_speed = 0.3
+minimum_forward_speed = 0.18
 
 # Ignore tiny lateral error to reduce chatter (meters)
 offset_deadband = 0.05
