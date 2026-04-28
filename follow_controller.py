@@ -86,11 +86,11 @@ class PID:
 
 # --- Defaults: tune on robot -------------------------------------------------
 
-Kp_lat = 1.6
+Kp_lat = 1.2
 Ki_lat = 0.08
 Kd_lat = 0.0  # PI-first; vision is noisy for raw D
 
-steer_max = 0.14
+steer_max = 0.10
 integral_limit_lat = 0.35
 
 steering_sign = -1.0  # Flip if the robot steers the wrong way for your wiring/camera setup
@@ -104,7 +104,7 @@ min_comfort_distance = 0.4
 minimum_forward_speed = 0.08
 
 # Ignore tiny lateral error to reduce chatter (meters)
-offset_deadband = 0.05
+offset_deadband = 0.08
 
 # Stop if tag closer than this (meters); 0 disables
 min_follow_distance = 0.0
