@@ -1,4 +1,6 @@
 import os
+import subprocess
+import threading
 import time
 import tkinter as tk
 from tkinter import messagebox
@@ -8,6 +10,14 @@ from PIL import Image, ImageTk
 import camera
 from follow_controller import FollowController
 from motors import Motors
+
+PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+MUSIC_DEVICE = "plughw:CARD=Device,DEV=0"
+MUSIC_CANDIDATES = [
+    os.path.join(PROJECT_DIR, "startup_music.wav"),
+    os.path.join(PROJECT_DIR, "music.wav"),
+    "/usr/share/sounds/alsa/Front_Center.wav",
+]
 
 
 def has_display() -> bool:
@@ -20,6 +30,9 @@ class FollowBotApp:
         self.camera = None
         self.motors = None
         self.controller = None
+        self.music_thread = None
+        self.music_process = None
+        self.music_stop_event = threading.Event()
         self.running = False
         self.last_t = None
         self.feed_image = None
@@ -201,6 +214,57 @@ class FollowBotApp:
         self.start_button.configure(state=tk.DISABLED if self.running else tk.NORMAL)
         self.stop_button.configure(state=tk.NORMAL if self.running else tk.DISABLED)
 
+    def _music_path(self):
+        for candidate in MUSIC_CANDIDATES:
+            if os.path.exists(candidate):
+                return candidate
+        return None
+
+    def _music_loop(self):
+        music_path = self._music_path()
+        if music_path is None:
+            return
+
+        while not self.music_stop_event.is_set():
+            try:
+                self.music_process = subprocess.Popen(
+                    ["aplay", "-D", MUSIC_DEVICE, music_path],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                while self.music_process.poll() is None:
+                    if self.music_stop_event.wait(0.1):
+                        self.music_process.terminate()
+                        try:
+                            self.music_process.wait(timeout=1)
+                        except subprocess.TimeoutExpired:
+                            self.music_process.kill()
+                        break
+            except Exception:
+                break
+            finally:
+                self.music_process = None
+
+            if not self.music_stop_event.is_set():
+                time.sleep(0.1)
+
+    def _start_music(self):
+        if self.music_thread is not None and self.music_thread.is_alive():
+            return
+        self.music_stop_event.clear()
+        self.music_thread = threading.Thread(target=self._music_loop, daemon=True)
+        self.music_thread.start()
+
+    def _stop_music(self):
+        self.music_stop_event.set()
+        if self.music_process is not None and self.music_process.poll() is None:
+            self.music_process.terminate()
+            try:
+                self.music_process.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                self.music_process.kill()
+        self.music_process = None
+
     def _ensure_camera(self):
         if self.camera is None:
             self.camera = camera.Camera()
@@ -235,8 +299,13 @@ class FollowBotApp:
             return
         self.running = True
         self.last_t = None
+        self._start_music()
         self.status_var.set("Drive mode running.")
-        self.detail_var.set("Live camera feed is embedded in the launcher.")
+        music_path = self._music_path()
+        if music_path is None:
+            self.detail_var.set("Live camera feed is embedded in the launcher.\nAdd startup_music.wav to play music.")
+        else:
+            self.detail_var.set(f"Live camera feed is embedded in the launcher.\nNow playing: {os.path.basename(music_path)}")
         self._refresh_controls()
 
     def stop_followbot(self):
@@ -247,6 +316,7 @@ class FollowBotApp:
                 self.motors.stop()
             except Exception:
                 pass
+        self._stop_music()
         self.running = False
         self.last_t = None
         self.status_var.set("Stopped.")
