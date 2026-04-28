@@ -90,18 +90,18 @@ Kp_lat = 1.6
 Ki_lat = 0.08
 Kd_lat = 0.0  # PI-first; vision is noisy for raw D
 
-steer_max = 0.18
+steer_max = 0.14
 integral_limit_lat = 0.35
 
 steering_sign = -1.0  # Flip if the robot steers the wrong way for your wiring/camera setup
 
-cruise_speed = 0.3
+cruise_speed = 0.18
 max_follow_distance = 2.0  # meters: same role as STOP_DISTANCE in main
 
 # Optional: scale down forward speed when very close (0 disables)
 slow_close_distance = 0.8
 min_comfort_distance = 0.4
-minimum_forward_speed = 0.18
+minimum_forward_speed = 0.08
 
 # Ignore tiny lateral error to reduce chatter (meters)
 offset_deadband = 0.05
@@ -111,6 +111,9 @@ min_follow_distance = 0.0
 
 # Briefly keep the last motor command when the tag disappears for a moment.
 lost_tag_hold_seconds = 0.35
+
+# Limit how quickly commands can change to avoid abrupt wheel spin-ups.
+max_command_step_per_second = 0.9
 
 
 class FollowController:
@@ -134,6 +137,7 @@ class FollowController:
         offset_deadband: float = offset_deadband,
         min_follow_distance: float = min_follow_distance,
         lost_tag_hold_seconds: float = lost_tag_hold_seconds,
+        max_command_step_per_second: float = max_command_step_per_second,
     ):
         self.motors = motors
         self.cruise_speed = cruise_speed
@@ -144,6 +148,7 @@ class FollowController:
         self.offset_deadband = offset_deadband
         self.min_follow_distance = min_follow_distance
         self.lost_tag_hold_seconds = max(lost_tag_hold_seconds, 0.0)
+        self.max_command_step_per_second = max(max_command_step_per_second, 0.0)
         self.steering_sign = steering_sign
 
         self._lateral = PID(
@@ -163,6 +168,15 @@ class FollowController:
         self._last_mono = None
         self._last_seen_mono = None
         self._last_command = (0.0, 0.0)
+
+    def _slew_limit_command(self, command: tuple[float, float], dt: float) -> tuple[float, float]:
+        if self.max_command_step_per_second <= 0.0:
+            return command
+
+        max_step = self.max_command_step_per_second * dt
+        left = self._last_command[0] + _clamp(command[0] - self._last_command[0], -max_step, max_step)
+        right = self._last_command[1] + _clamp(command[1] - self._last_command[1], -max_step, max_step)
+        return (_clamp(left, -1.0, 1.0), _clamp(right, -1.0, 1.0))
 
     def step(self, distance: float, offset_x: float, dt: float | None = None) -> None:
         """
@@ -226,6 +240,7 @@ class FollowController:
         left = base - steer
         right = base + steer
         command = (_clamp(left, -1.0, 1.0), _clamp(right, -1.0, 1.0))
+        command = self._slew_limit_command(command, dt)
         self.motors.set_speed(*command)
         self._last_command = command
         self._last_seen_mono = now
