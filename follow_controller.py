@@ -86,25 +86,28 @@ class PID:
 
 # --- Defaults: tune on robot -------------------------------------------------
 
-Kp_lat = 1.2
-Ki_lat = 0.08
+Kp_lat = 0.35
+Ki_lat = 0.0
 Kd_lat = 0.0  # PI-first; vision is noisy for raw D
 
-steer_max = 0.10
+steer_max = 0.04
 integral_limit_lat = 0.35
 
 steering_sign = -1.0  # Flip if the robot steers the wrong way for your wiring/camera setup
 
-cruise_speed = 0.24
+cruise_speed = 0.30
 max_follow_distance = 2.0  # meters: same role as STOP_DISTANCE in main
 
 # Optional: scale down forward speed when very close (0 disables)
 slow_close_distance = 0.8
 min_comfort_distance = 0.4
-minimum_forward_speed = 0.12
+minimum_forward_speed = 0.18
 
-# Ignore tiny lateral error to reduce chatter (meters)
-offset_deadband = 0.08
+# Ignore lateral error near center so a detected tag mostly means "drive straight".
+offset_deadband = 0.20
+
+# Steering is a trim on top of forward motion; keep it from dominating the drive command.
+max_steer_fraction_of_base = 0.30
 
 # Stop if tag closer than this (meters); 0 disables
 min_follow_distance = 0.0
@@ -113,7 +116,7 @@ min_follow_distance = 0.0
 lost_tag_hold_seconds = 0.35
 
 # Limit how quickly commands can change to avoid abrupt wheel spin-ups.
-max_command_step_per_second = 0.9
+max_command_step_per_second = 1.2
 
 
 class FollowController:
@@ -135,6 +138,7 @@ class FollowController:
         min_comfort_distance: float = min_comfort_distance,
         minimum_forward_speed: float = minimum_forward_speed,
         offset_deadband: float = offset_deadband,
+        max_steer_fraction_of_base: float = max_steer_fraction_of_base,
         min_follow_distance: float = min_follow_distance,
         lost_tag_hold_seconds: float = lost_tag_hold_seconds,
         max_command_step_per_second: float = max_command_step_per_second,
@@ -146,6 +150,7 @@ class FollowController:
         self.min_comfort_distance = max(min_comfort_distance, 1e-3)
         self.minimum_forward_speed = max(minimum_forward_speed, 0.0)
         self.offset_deadband = offset_deadband
+        self.max_steer_fraction_of_base = _clamp(max_steer_fraction_of_base, 0.0, 1.0)
         self.min_follow_distance = min_follow_distance
         self.lost_tag_hold_seconds = max(lost_tag_hold_seconds, 0.0)
         self.max_command_step_per_second = max(max_command_step_per_second, 0.0)
@@ -231,9 +236,9 @@ class FollowController:
             base = max(
                 self.minimum_forward_speed,
                 base * _clamp(
-                distance / self.min_comfort_distance,
-                0.0,
-                1.0,
+                    distance / self.min_comfort_distance,
+                    0.0,
+                    1.0,
                 ),
             )
 
@@ -242,6 +247,8 @@ class FollowController:
             lat_meas = 0.0
         error_lat = 0.0 - lat_meas
         steer = self._lateral.update(error_lat, dt) * self.steering_sign
+        steer_limit = base * self.max_steer_fraction_of_base
+        steer = _clamp(steer, -steer_limit, steer_limit)
 
         left = base - steer
         right = base + steer

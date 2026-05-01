@@ -59,6 +59,8 @@ def run_drive_mode(debug_drive=False):
             "Drive mode enabled:",
             f"stop_distance={STOP_DISTANCE:.2f}m",
             f"cruise_speed={ctrl.cruise_speed:.2f}",
+            f"offset_deadband={ctrl.offset_deadband:.2f}m",
+            f"max_steer_fraction={ctrl.max_steer_fraction_of_base:.2f}",
             f"max_command_step_per_second={ctrl.max_command_step_per_second:.2f}",
         )
         print(
