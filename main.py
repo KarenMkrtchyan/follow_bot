@@ -45,7 +45,7 @@ def run_preview_mode():
         cam.close()
 
 
-def run_drive_mode():
+def run_drive_mode(debug_drive=False):
     cam = camera.Camera()
     motors = Motors()
     ctrl = FollowController(motors, max_follow_distance=STOP_DISTANCE)
@@ -53,7 +53,14 @@ def run_drive_mode():
     last_t = time.monotonic()
     last_status = None
     last_status_time = 0.0
+    last_debug_time = 0.0
     try:
+        print(
+            "Drive mode enabled:",
+            f"stop_distance={STOP_DISTANCE:.2f}m",
+            f"cruise_speed={ctrl.cruise_speed:.2f}",
+            f"max_command_step_per_second={ctrl.max_command_step_per_second:.2f}",
+        )
         print(
             "Display detection:",
             f"has_display={cam.has_display},",
@@ -75,6 +82,16 @@ def run_drive_mode():
                 last_status = status
                 last_status_time = now
             ctrl.step(dist, offset_x, dt)
+            if debug_drive and now - last_debug_time >= 0.25:
+                left, right = ctrl._last_command
+                print(
+                    "DRIVE DEBUG:",
+                    f"reason={ctrl.last_reason}",
+                    f"dt={dt:.3f}s",
+                    f"left={left:.3f}",
+                    f"right={right:.3f}",
+                )
+                last_debug_time = now
     except KeyboardInterrupt:
         print("Stopping robot...")
     finally:
@@ -93,10 +110,15 @@ def main():
         action="store_true",
         help="Enable motor control and follow the detected AprilTag.",
     )
+    parser.add_argument(
+        "--debug-drive",
+        action="store_true",
+        help="Print controller stop reasons and left/right motor commands.",
+    )
     args = parser.parse_args()
 
-    if args.drive:
-        run_drive_mode()
+    if args.drive or args.debug_drive:
+        run_drive_mode(debug_drive=args.debug_drive)
     else:
         print("Starting in preview-only mode. Use --drive to enable motors.")
         run_preview_mode()

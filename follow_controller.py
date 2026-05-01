@@ -95,13 +95,13 @@ integral_limit_lat = 0.35
 
 steering_sign = -1.0  # Flip if the robot steers the wrong way for your wiring/camera setup
 
-cruise_speed = 0.18
+cruise_speed = 0.24
 max_follow_distance = 2.0  # meters: same role as STOP_DISTANCE in main
 
 # Optional: scale down forward speed when very close (0 disables)
 slow_close_distance = 0.8
 min_comfort_distance = 0.4
-minimum_forward_speed = 0.08
+minimum_forward_speed = 0.12
 
 # Ignore tiny lateral error to reduce chatter (meters)
 offset_deadband = 0.08
@@ -162,12 +162,14 @@ class FollowController:
         self._last_mono: float | None = None
         self._last_seen_mono: float | None = None
         self._last_command = (0.0, 0.0)
+        self.last_reason = "not_started"
 
     def reset(self) -> None:
         self._lateral.reset()
         self._last_mono = None
         self._last_seen_mono = None
         self._last_command = (0.0, 0.0)
+        self.last_reason = "reset"
 
     def _slew_limit_command(self, command: tuple[float, float], dt: float) -> tuple[float, float]:
         if self.max_command_step_per_second <= 0.0:
@@ -201,23 +203,27 @@ class FollowController:
                 and now - self._last_seen_mono <= self.lost_tag_hold_seconds
             ):
                 self.motors.set_speed(*self._last_command)
+                self.last_reason = "holding_last_command"
                 return
             self._lateral.reset()
             self.motors.stop()
             self._last_command = (0.0, 0.0)
             self._last_seen_mono = None
+            self.last_reason = "no_tag"
             return
 
         if distance > self.max_follow_distance:
             self._lateral.reset()
             self.motors.stop()
             self._last_command = (0.0, 0.0)
+            self.last_reason = "too_far"
             return
 
         if self.min_follow_distance > 0.0 and distance < self.min_follow_distance:
             self._lateral.reset()
             self.motors.stop()
             self._last_command = (0.0, 0.0)
+            self.last_reason = "too_close"
             return
 
         base = self.cruise_speed
@@ -244,3 +250,4 @@ class FollowController:
         self.motors.set_speed(*command)
         self._last_command = command
         self._last_seen_mono = now
+        self.last_reason = "commanded"
